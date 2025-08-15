@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nigerian Village Ancestry Tree</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #006241;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .search-box, .add-member, .filter-controls {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            flex-grow: 1;
+        }
+
+        .search-box input, .add-member input, .filter-controls select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #008751;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #006241;
+        }
+
+        #family-tree-container {
+            width: 100%;
+            height: 70vh;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .family-member {
+            padding: 10px;
+            border: 2px solid #008751;
+            border-radius: 8px;
+            background-color: #e6f7ee;
+            width: 150px;
+            text-align: center;
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .family-member:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .family-member h3 {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .family-member p {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .connector {
+            position: absolute;
+            border-top: 2px solid #008751;
+            z-index: -1;
+        }
+
+        #member-details {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            z-index: 1000;
+            display: none;
+        }
+
+        #member-details h2 {
+            margin-bottom: 15px;
+            color: #006241;
+        }
+
+        .detail-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .detail-row strong {
+            width: 120px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .male {
+            background-color: #b3e0ff;
+            border-color: #0077cc;
+        }
+
+        .female {
+            background-color: #ffccf9;
+            border-color: #ff66cc;
+        }
+
+        .deceased {
+            opacity: 0.7;
+            border-style: dashed;
+        }
+
+        .add-member-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .add-member-form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .add-member-form input, .add-member-form select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .form-controls {
+            grid-column: span 2;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            .add-member-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-controls {
+                grid-column: span 1;
+            }
+            
+            #member-details {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Nigerian Village Ancestry Tree</h1>
+        <p>Preserve your heritage and discover your roots</p>
+    </header>
+
+    <div class="controls">
+        <div class="search-box">
+            <h3>Search Family Members</h3>
+            <input type="text" id="search-input" placeholder="Enter name...">
+            <button id="search-btn">Search</button>
+        </div>
+
+        <div class="add-member">
+            <h3>Add Family Member</h3>
+            <button id="add-member-btn">Add New Member</button>
+        </div>
+
+        <div class="filter-controls">
+            <h3>Filter View</h3>
+            <select id="generation-filter">
+                <option value="all">All Generations</option>
+                <option value="1">First Generation</option>
+                <option value="2">Second Generation</option>
+                <option value="3">Third Generation</option>
+            </select>
+            <button id="apply-filter">Apply Filter</button>
+        </div>
+    </div>
+
+    <div id="family-tree-container">
+        <div class="loading">Loading family tree...</div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #b3e0ff;"></div>
+            <span>Male</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #ffccf9;"></div>
+            <span>Female</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e6f7ee; border: 2px dashed #008751;"></div>
+            <span>Deceased</span>
+        </div>
+    </div>
+
+    <div id="overlay"></div>
+
+    <div id="member-details">
+        <button class="close-btn">&times;</button>
+        <h2 id="detail-name">Member Name</h2>
+        <div class="detail-row">
+            <strong>Birth Date:</strong>
+            <span id="detail-birth">Unknown</span>
+        </div>
+        <div class="detail-row">
+            <strong>Death Date:</strong>
+            <span id="detail-death">-</span>
+        </div>
+        <div class="detail-row">
+            <strong>Gender:</strong>
+            <span id="detail-gender">Unknown</span>
+        </div>
+        <div class="detail-row">
+            <strong>Parents:</strong>
+            <span id="detail-parents">Unknown</span>
+        </div>
+        <div class="detail-row">
+            <strong>Children:</strong>
+            <span id="detail-children">None</span>
+        </div>
+        <div class="detail-row">
+            <strong>Spouse(s):</strong>
+            <span id="detail-spouse">None</span>
+        </div>
+        <div class="detail-row">
+            <strong>Village Role:</strong>
+            <span id="detail-role">Unknown</span>
+        </div>
+        <div class="detail-row">
+            <strong>Notes:</strong>
+            <span id="detail-notes">No additional information</span>
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button id="edit-member-btn">Edit</button>
+            <button id="delete-member-btn">Delete</button>
+        </div>
+    </div>
+
+    <script>
+        // Class to represent a family member
+        class FamilyMember {
+            constructor(id, name, gender, birthDate, deathDate, parentIds, spouseIds, villageRole, notes) {
+                this.id = id;
+                this.name = name;
+                this.gender = gender;
+                this.birthDate = birthDate;
+                this.deathDate = deathDate;
+                this.parentIds = parentIds || [];
+                this.childrenIds = [];
+                this.spouseIds = spouseIds || [];
+                this.villageRole = villageRole || '';
+                this.notes = notes || '';
+                this.generation = 0; // Will be calculated
+            }
+        }
+
+        // Class to manage the family tree
+        class FamilyTree {
+            constructor() {
+                this.members = new Map();
+                this.rootMembers = []; // Members with no parents
+            }
+
+            // Add a member to the tree
+            addMember(member) {
+                this.members.set(member.id, member);
+                
+                // If this member has parents, add this member as a child to those parents
+                if (member.parentIds.length === 0) {
+                    this.rootMembers.push(member.id);
+                } else {
+                    member.parentIds.forEach(parentId => {
+                        const parent = this.members.get(parentId);
+                        if (parent) {
+                            parent.childrenIds.push(member.id);
+                        }
+                    });
+                }
+
+                // Calculate generation
+                this.calculateGenerations();
+            }
+
+            // Calculate generations for all members
+            calculateGenerations() {
+                // Reset generations
+                for (const member of this.members.values()) {
+                    member.generation = 0;
+                }
+
+                // Start with root members
+                for (const rootId of this.rootMembers) {
+                    this.setGenerationRecursive(rootId, 1);
+                }
+            }
+
+            // Set generation recursively for a member and their descendants
+            setGenerationRecursive(memberId, generation) {
+                const member = this.members.get(memberId);
+                if (!member) return;
+
+                member.generation = Math.max(member.generation, generation);
+                
+                // Set generation for children
+                for (const childId of member.childrenIds) {
+                    this.setGenerationRecursive(childId, generation + 1);
+                }
+            }
+
+            // Get all members of a specific generation
+            getMembersByGeneration(generation) {
+                if (generation === 'all') {
+                    return Array.from(this.members.values());
+                }
+                
+                return Array.from(this.members.values())
+                    .filter(member => member.generation === parseInt(generation));
+            }
+
+            // Get a member by name (partial match)
+            getMembersByName(name) {
+                name = name.toLowerCase();
+                return Array.from(this.members.values())
+                    .filter(member => member.name.toLowerCase().includes(name));
+            }
+
+            // Get member by ID
+            getMemberById(id) {
+                return this.members.get(id);
+            }
+
+            // Remove a member
+            removeMember(id) {
+                const member = this.members.get(id);
+                if (!member) return false;
+
+                // Remove from parents' children list
+                member.parentIds.forEach(parentId => {
+                    const parent = this.members.get(parentId);
+                    if (parent) {
+                        parent.childrenIds = parent.childrenIds.filter(cid => cid !== id);
+                    }
+                });
+
+                // Remove from spouses' spouse list
+                member.spouseIds.forEach(spouseId => {
+                    const spouse = this.members.get(spouseId);
+                    if (spouse) {
+                        spouse.spouseIds = spouse.spouseIds.filter(sid => sid !== id);
+                    }
+                });
+
+                // Remove member
+                this.members.delete(id);
+                this.rootMembers = this.rootMembers.filter(rid => rid !== id);
+
+                // Recalculate generations
+                this.calculateGenerations();
+                return true;
+            }
+
+            // Update member details
+            updateMember(id, updatedInfo) {
+                const member = this.members.get(id);
+                if (!member) return false;
+
+                // Update basic info
+                member.name = updatedInfo.name || member.name;
+                member.gender = updatedInfo.gender || member.gender;
+                member.birthDate = updatedInfo.birthDate || member.birthDate;
+                member.deathDate = updatedInfo.deathDate || member.deathDate;
+                member.villageRole = updatedInfo.villageRole || member.villageRole;
+                member.notes = updatedInfo.notes || member.notes;
+
+                // Handle parent changes if necessary
+                if (updatedInfo.parentIds) {
+                    // Remove from old parents' children list
+                    member.parentIds.forEach(parentId => {
+                        const parent = this.members.get(parentId);
+                        if (parent) {
+                            parent.childrenIds = parent.childrenIds.filter(cid => cid !== id);
+                        }
+                    });
+
+                    // Update parent IDs
+                    member.parentIds = updatedInfo.parentIds;
+
+                    // Add to new parents' children list
+                    member.parentIds.forEach(parentId => {
+                        const parent = this.members.get(parentId);
+                        if (parent) {
+                            parent.childrenIds.push(id);
+                        }
+                    });
+
+                    // Update root members and recalculate generations
+                    if (member.parentIds.length === 0) {
+                        if (!this.rootMembers.includes(id)) {
+                            this.rootMembers.push(id);
+                        }
+                    } else {
+                        this.rootMembers = this.rootMembers.filter(rid => rid !== id);
+                    }
+                    this.calculateGenerations();
+                }
+
+                // Handle spouse changes if necessary
+                if (updatedInfo.spouseIds) {
+                    // Remove from old spouses' spouse list
+                    member.spouseIds.forEach(spouseId => {
+                        const spouse = this.members.get(spouseId);
+                        if (spouse) {
+                            spouse.spouseIds = spouse.spouseIds.filter(sid => sid !== id);
+                        }
+                    });
+
+                    // Update spouse IDs
+                    member.spouseIds = updatedInfo.spouseIds;
+
+                    // Add to new spouses' spouse list
+                    member.spouseIds.forEach(spouseId => {
+                        const spouse = this.members.get(spouseId);
+                        if (spouse) {
+                            spouse.spouseIds.push(id);
+                        }
+                    });
+                }
+
+                return true;
+            }
+
+            // Get all members as an array
+            getAllMembers() {
+                return Array.from(this.members.values());
+            }
+        }
+
+        // Sample data - replace with real data from your backend
+        const sampleData = [
+            new FamilyMember('1', 'Adebayo Olatunji', 'male', '1900-01-15', '1980-07-22', [], ['2'], 'Village Elder', 'Founder of the eastern settlement'),
+            new FamilyMember('2', 'Folami Olatunji', 'female', '1905-03-10', '1985-11-05', [], ['1'], 'Midwife', 'Known for her herbal remedies'),
+            new FamilyMember('3', 'Oluwasegun Olatunji', 'male', '1925-06-20', '2000-09-14', ['1', '2'], ['4'], 'Farmer', 'Introduced new farming techniques'),
+            new FamilyMember('4', 'Abimbola Olatunji', 'female', '1930-11-30', '2005-04-17', [], ['3'], 'Weaver', 'Created beautiful traditional textiles'),
+            new FamilyMember('5', 'Tunde Olatunji', 'male', '1955-08-12', '', ['3', '4'], ['6'], 'Teacher', 'Educated many generations of village children'),
+            new FamilyMember('6', 'Yewande Olatunji', 'female', '1960-02-25', '', [], ['5'], 'Nurse', 'Works at the regional hospital'),
+            new FamilyMember('7', 'Kayode Olatunji', 'male', '1985-12-03', '', ['5', '6'], [], 'Software Engineer', 'Works remotely for a tech company'),
+            new FamilyMember('8', 'Funmilayo Olatunji', 'female', '1990-05-18', '', ['5', '6'], [], 'Doctor', 'Specialized in community health'),
+        ];
+
+        // Initialize the family tree
+        const familyTree = new FamilyTree();
+        
+        // Add members to the tree
+        sampleData.forEach(member => {
+            familyTree.addMember(member);
+        });
+
+        // DOM elements
+        const familyTreeContainer = document.getElementById('family-tree-container');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const addMemberBtn = document.getElementById('add-member-btn');
+        const generationFilter = document.getElementById('generation-filter');
+        const applyFilterBtn = document.getElementById('apply-filter');
+        const memberDetails = document.getElementById('member-details');
+        const overlay = document.getElementById('overlay');
+        const closeBtn = document.querySelector('.close-btn');
+        const editMemberBtn = document.getElementById('edit-member-btn');
+        const deleteMemberBtn = document.getElementById('delete-member-btn');
+
+        // Variables for member details
+        let currentMemberId = null;
+
+        // Render family tree
+        function renderFamilyTree(members = familyTree.getAllMembers()) {
+            // Clear existing tree
+            familyTreeContainer.innerHTML = '';
+            
+            if (members.length === 0) {
+                familyTreeContainer.innerHTML = '<div class="loading">No family members found</div>';
+                return;
+            }
+
+            // Calculate positions
+            const generationMaxCount = {};
+            const generationCurrentIndex = {};
+            
+            // Count maximum members per generation
+            members.forEach(member => {
+                generationMaxCount[member.generation] = (generationMaxCount[member.generation] || 0) + 1;
+                generationCurrentIndex[member.generation] = 0;
+            });
+            
+            // Get the maximum generation number
+            const maxGeneration = Math.max(...Object.keys(generationMaxCount).map(Number));
+            
+            // Calculate height per generation
+            const heightPerGeneration = familyTreeContainer.clientHeight / (maxGeneration + 1);
+            
+            // Create DOM elements for each member
+            members.forEach(member => {
+                // Create member element
+                const memberElement = document.createElement('div');
+                memberElement.className = `family-member ${member.gender}`;
+                if (member.deathDate) memberElement.classList.add('deceased');
+                memberElement.dataset.id = member.id;
+                
+                // Add name and lifespan
+                const lifespan = member.deathDate 
+                    ? `${new Date(member.birthDate).getFullYear()}-${new Date(member.deathDate).getFullYear()}`
+                    : `b. ${new Date(member.birthDate).getFullYear()}`;
+                
+                memberElement.innerHTML = `
+                    <h3>${member.name}</h3>
+                    <p>${lifespan}</p>
+                `;
+                
+                // Position the element
+                const generation = member.generation;
+                const top = (generation - 1) * heightPerGeneration + 40;
+                
+                const width = familyTreeContainer.clientWidth;
+                const widthPerMember = width / (generationMaxCount[generation] + 1);
+                const left = (generationCurrentIndex[generation] + 1) * widthPerMember - 75;
+                
+                memberElement.style.top = `${top}px`;
+                memberElement.style.left = `${left}px`;
+                
+                // Increment current index for this generation
+                generationCurrentIndex[generation]++;
+                
+                // Add to container
+                familyTreeContainer.appendChild(memberElement);
+                
+                // Add event listener for details
+                memberElement.addEventListener('click', () => showMemberDetails(member.id));
+            });
+            
+            // Add connectors between members
+            members.forEach(member => {
+                // Connect to parents
+                member.parentIds.forEach(parentId => {
+                    const parent = familyTree.getMemberById(parentId);
+                    if (parent && members.includes(parent)) {
+                        createConnector(parent.id, member.id);
+                    }
+                });
+            });
+        }
+
+        // Create a connector between two members
+        function createConnector(parentId, childId) {
+            const parentElement = document.querySelector(`.family-member[data-id="${parentId}"]`);
+            const childElement = document.querySelector(`.family-member[data-id="${childId}"]`);
+            
+            if (!parentElement || !childElement) return;
+            
+            const connector = document.createElement('div');
+            connector.className = 'connector';
+            
+            // Get positions
+            const parentRect = parentElement.getBoundingClientRect();
+            const childRect = childElement.getBoundingClientRect();
+            const containerRect = familyTreeContainer.getBoundingClientRect();
+            
+            // Calculate relative positions
+            const parentX = parentRect.left + parentRect.width / 2 - containerRect.left;
+            const parentY = parentRect.top + parentRect.height - containerRect.top;
+            const childX = childRect.left + childRect.width / 2 - containerRect.left;
+            const childY = childRect.top - containerRect.top;
+            
+            // Create vertical connector
+            const verticalConnector = document.createElement('div');
+            verticalConnector.className = 'connector';
+            verticalConnector.style.width = '2px';
+            verticalConnector.style.height = `${childY - parentY}px`;
+            verticalConnector.style.top = `${parentY}px`;
+            verticalConnector.style.left = `${parentX}px`;
+            
+            // Create horizontal connector
+            const horizontalConnector = document.createElement('div');
+            horizontalConnector.className = 'connector';
+            horizontalConnector.style.width = `${Math.abs(childX - parentX)}px`;
+            horizontalConnector.style.height = '2px';
+            horizontalConnector.style.top = `${childY - 2}px`;
+            horizontalConnector.style.left = `${Math.min(parentX, childX)}px`;
+            
+            // Add connectors to container
+            familyTreeContainer.appendChild(verticalConnector);
+            familyTreeContainer.appendChild(horizontalConnector);
+        }
+
+        // Show member details
+        function showMemberDetails(memberId) {
+            const member = familyTree.getMemberById(memberId);
+            if (!member) return;
+            
+            currentMemberId = memberId;
+            
+            // Update details
+            document.getElementById('detail-name').textContent = member.name;
+            document.getElementById('detail-birth').textContent = formatDate(member.birthDate);
+            document.getElementById('detail-death').textContent = member.deathDate ? formatDate(member.deathDate) : '-';
+            document.getElementById('detail-gender').textContent = capitalizeFirstLetter(member.gender);
+            
+            // Get parents names
+            const parentNames = member.parentIds.map(id => {
+                const parent = familyTree.getMemberById(id);
+                return parent ? parent.name : 'Unknown';
+            }).join(', ') || 'Unknown';
+            document.getElementById('detail-parents').textContent = parentNames;
+            
+            // Get children names
+            const childrenNames = member.childrenIds.map(id => {
+                const child = familyTree.getMemberById(id);
+                return child ? child.name : 'Unknown';
+            }).join(', ') || 'None';
+            document.getElementById('detail-children').textContent = childrenNames;
+            
+            // Get spouse names
+            const spouseNames = member.spouseIds.map(id => {
+                const spouse = familyTree.getMemberById(id);
+                return spouse ? spouse.name : 'Unknown';
+            }).join(', ') || 'None';
+            document.getElementById('detail-spouse').textContent = spouseNames;
+            
+            document.getElementById('detail-role').textContent = member.villageRole || 'Unknown';
+            document.getElementById('detail-notes').textContent = member.notes || 'No additional information';
+            
+            // Show details and overlay
+            memberDetails.style.display = 'block';
+            overlay.style.display = 'block';
+        }
+
+        // Close member details
+        function closeMemberDetails() {
+            memberDetails.style.display = 'none';
+            overlay.style.display = 'none';
+            currentMemberId = null;
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Capitalize first letter
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        // Search for family members
+        function searchMembers() {
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm === '') {
+                renderFamilyTree();
+                return;
+            }
+            
+            const results = familyTree.getMembersByName(searchTerm);
+            renderFamilyTree(results);
+        }
+
+        // Filter by generation
+        function filterByGeneration() {
+            const generation = generationFilter.value;
+            const filteredMembers = familyTree.getMembersByGeneration(generation);
+            renderFamilyTree(filteredMembers);
+        }
+
+        // Event listeners
+        window.addEventListener('load', () => renderFamilyTree());
+        window.addEventListener('resize', () => renderFamilyTree());
+        searchBtn.addEventListener('click', searchMembers);
+        applyFilterBtn.addEventListener('click', filterByGeneration);
+        closeBtn.addEventListener('click', closeMemberDetails);
+        overlay.addEventListener('click', closeMemberDetails);
+
+        // Add member functionality would connect to your backend
+        addMemberBtn.addEventListener('click', () => {
+            alert('This would open an add member form that connects to your backend.');
+            // This would typically open a form and send data to your Java backend
+        });
+
+        // Edit member functionality would connect to your backend
+        editMemberBtn.addEventListener('click', () => {
+            if (currentMemberId) {
+                alert(`This would open an edit form for member ID: ${currentMemberId}`);
+                // This would typically open a form with the member's data and send updates to your Java backend
+            }
+        });
+
+        // Delete member functionality would connect to your backend
+        deleteMemberBtn.addEventListener('click', () => {
+            if (currentMemberId) {
+                if (confirm('Are you sure you want to delete this family member?')) {
+                    alert(`This would delete member ID: ${currentMemberId} from your database`);
+                    // This would typically send a delete request to your Java backend
+                }
+            }
+        });
+    </script>
+</body>
+</html>

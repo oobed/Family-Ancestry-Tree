@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,54 +31,61 @@ public class FamilyTreeService {
     public FamilyTreeResponse getAllFamilyMembers() {
         List<FamilyMember> allMembers = memberRepository.findAll();
         List<FamilyMember> rootMembers = memberRepository.findRootMembers();
-        
+
         // Calculate generations
         calculateGenerations(allMembers, rootMembers);
-        
-        return new FamilyTreeResponse(allMembers, rootMembers);
+
+        return new FamilyTreeResponse(toDTOList(allMembers), toDTOList(rootMembers));
     }
-    
+
     /**
      * Get a family member by ID
      */
-    public FamilyMember getFamilyMemberById(Long id) {
+    public FamilyMemberDTO getFamilyMemberById(Long id) {
+        return toDTO(findMemberEntity(id));
+    }
+
+    /**
+     * Get a family member entity by ID
+     */
+    private FamilyMember findMemberEntity(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Family member not found with id: " + id));
     }
-    
+
     /**
      * Search for family members based on criteria
      */
-    public List<FamilyMember> searchFamilyMembers(String name, String gender, String role) {
-        return memberRepository.searchMembers(name, gender, role);
+    public List<FamilyMemberDTO> searchFamilyMembers(String name, String gender, String role) {
+        return toDTOList(memberRepository.searchMembers(name, gender, role));
     }
-    
+
     /**
      * Create a new family member
      */
     @Transactional
-    public FamilyMember createFamilyMember(FamilyMemberDTO memberDTO) {
+    public FamilyMemberDTO createFamilyMember(FamilyMemberDTO memberDTO) {
         FamilyMember member = new FamilyMember();
         updateMemberFromDTO(member, memberDTO);
-        return memberRepository.save(member);
+        return toDTO(memberRepository.save(member));
     }
-    
+
     /**
      * Update an existing family member
      */
     @Transactional
-    public FamilyMember updateFamilyMember(Long id, FamilyMemberDTO memberDTO) {
-        FamilyMember existingMember = getFamilyMemberById(id);
+    public FamilyMemberDTO updateFamilyMember(Long id, FamilyMemberDTO memberDTO) {
+        FamilyMember existingMember = findMemberEntity(id);
         updateMemberFromDTO(existingMember, memberDTO);
-        return memberRepository.save(existingMember);
+        return toDTO(memberRepository.save(existingMember));
     }
-    
+
     /**
      * Delete a family member
      */
     @Transactional
     public void deleteFamilyMember(Long id) {
-        FamilyMember member = getFamilyMemberById(id);
+        FamilyMember member = findMemberEntity(id);
         
         // Remove this member from all relationships
         for (FamilyMember parent : member.getParents()) {
@@ -99,19 +107,19 @@ public class FamilyTreeService {
      * Get a graph of family members starting from a specific ancestor
      */
     public FamilyTreeResponse getFamilyTreeByAncestor(Long ancestorId) {
-        FamilyMember ancestor = getFamilyMemberById(ancestorId);
+        FamilyMember ancestor = findMemberEntity(ancestorId);
         List<FamilyMember> allMembers = new ArrayList<>();
         List<FamilyMember> rootAncestors = new ArrayList<>();
         rootAncestors.add(ancestor);
-        
+
         // Gather all descendants
         Set<FamilyMember> visited = new HashSet<>();
         gatherDescendants(ancestor, allMembers, visited);
-        
+
         // Calculate generations
         calculateGenerations(allMembers, rootAncestors);
-        
-        return new FamilyTreeResponse(allMembers, rootAncestors);
+
+        return new FamilyTreeResponse(toDTOList(allMembers), toDTOList(rootAncestors));
     }
     
     /**
@@ -171,6 +179,29 @@ public class FamilyTreeService {
         }
     }
     
+    /**
+     * Convert a member entity to a DTO (avoids serializing the circular
+     * parents/children/spouses entity graph directly)
+     */
+    private FamilyMemberDTO toDTO(FamilyMember member) {
+        FamilyMemberDTO dto = new FamilyMemberDTO();
+        dto.setId(member.getId());
+        dto.setName(member.getName());
+        dto.setGender(member.getGender());
+        dto.setBirthDate(member.getBirthDate());
+        dto.setDeathDate(member.getDeathDate());
+        dto.setVillageRole(member.getVillageRole());
+        dto.setNotes(member.getNotes());
+        dto.setPhotoUrl(member.getPhotoUrl());
+        dto.setParentIds(member.getParents().stream().map(FamilyMember::getId).collect(Collectors.toList()));
+        dto.setSpouseIds(member.getSpouses().stream().map(FamilyMember::getId).collect(Collectors.toList()));
+        return dto;
+    }
+
+    private List<FamilyMemberDTO> toDTOList(List<FamilyMember> members) {
+        return members.stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
     /**
      * Update a member entity from DTO
      */

@@ -5,10 +5,10 @@ import lombok.Data;
 
 @Data
 public class FamilyTreeResponse {
-    private List<FamilyMember> members;
-    private List<FamilyMember> rootMembers;
+    private List<FamilyMemberDTO> members;
+    private List<FamilyMemberDTO> rootMembers;
 
-    public FamilyTreeResponse(List<FamilyMember> members, List<FamilyMember> rootMembers) {
+    public FamilyTreeResponse(List<FamilyMemberDTO> members, List<FamilyMemberDTO> rootMembers) {
         this.members = members;
         this.rootMembers = rootMembers;
     }

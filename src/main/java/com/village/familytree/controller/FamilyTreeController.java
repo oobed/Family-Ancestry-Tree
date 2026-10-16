@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.village.familytree.model.FamilyMember;
 import com.village.familytree.model.FamilyMemberDTO;
 import com.village.familytree.model.FamilyTreeResponse;
 import com.village.familytree.service.FamilyTreeService;
@@ -32,20 +31,20 @@ public class FamilyTreeController {
      * Get a specific family member by ID
      */
     @GetMapping("/members/{id}")
-    public ResponseEntity<FamilyMember> getMemberById(@PathVariable Long id) {
-        FamilyMember member = familyTreeService.getFamilyMemberById(id);
+    public ResponseEntity<FamilyMemberDTO> getMemberById(@PathVariable Long id) {
+        FamilyMemberDTO member = familyTreeService.getFamilyMemberById(id);
         return ResponseEntity.ok(member);
     }
-    
+
     /**
      * Search for family members
      */
     @GetMapping("/members/search")
-    public ResponseEntity<List<FamilyMember>> searchMembers(
+    public ResponseEntity<List<FamilyMemberDTO>> searchMembers(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String gender,
             @RequestParam(required = false) String role) {
-        List<FamilyMember> members = familyTreeService.searchFamilyMembers(name, gender, role);
+        List<FamilyMemberDTO> members = familyTreeService.searchFamilyMembers(name, gender, role);
         return ResponseEntity.ok(members);
     }
     
@@ -62,19 +61,19 @@ public class FamilyTreeController {
      * Add a new family member
      */
     @PostMapping("/members")
-    public ResponseEntity<FamilyMember> createMember(@RequestBody FamilyMemberDTO memberDTO) {
-        FamilyMember newMember = familyTreeService.createFamilyMember(memberDTO);
+    public ResponseEntity<FamilyMemberDTO> createMember(@RequestBody FamilyMemberDTO memberDTO) {
+        FamilyMemberDTO newMember = familyTreeService.createFamilyMember(memberDTO);
         return new ResponseEntity<>(newMember, HttpStatus.CREATED);
     }
-    
+
     /**
      * Update an existing family member
      */
     @PutMapping("/members/{id}")
-    public ResponseEntity<FamilyMember> updateMember(
-            @PathVariable Long id, 
+    public ResponseEntity<FamilyMemberDTO> updateMember(
+            @PathVariable Long id,
             @RequestBody FamilyMemberDTO memberDTO) {
-        FamilyMember updatedMember = familyTreeService.updateFamilyMember(id, memberDTO);
+        FamilyMemberDTO updatedMember = familyTreeService.updateFamilyMember(id, memberDTO);
         return ResponseEntity.ok(updatedMember);
     }
     

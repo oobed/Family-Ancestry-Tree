@@ -33,3 +33,10 @@ target/
 application-local.properties
 application-aws.properties
 .env
+
+### Terraform ###
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
